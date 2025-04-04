@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 use App\Jobs\SendPriceChangeNotification;
 use App\Models\Product;
 
@@ -72,16 +71,16 @@ class AdminController extends Controller
     public function updateProduct(Request $request, Product $product)
     {
         try {
-          $validatedData = $this->validateProductRequest($request);
+            $validatedData = $this->validateProductRequest($request);
         } catch (\Exception $e) {
-          return redirect()->back()->withErrors($e->errors())->withInput();
+            return redirect()->back()->withErrors($e->errors())->withInput();
         }
 
         $oldPrice = $product->price; // Store the old price before updating
         $product->update($validatedData); // Update all product fields
 
         if ($request->hasFile('image')) {
-          $product->image = $this->handleProductImage($request); // Save the product image in the upload folder
+            $product->image = $this->handleProductImage($request); // Save the product image in the upload folder
         }
 
         $product->save(); // Save updated product in the DB
@@ -94,7 +93,7 @@ class AdminController extends Controller
             try {
                 SendPriceChangeNotification::dispatch($product, $oldPrice, $product->price, $notificationEmail);
             } catch (\Exception $e) {
-                 Log::error('Failed to dispatch price change notification: ' . $e->getMessage());
+                Log::error('Failed to dispatch price change notification: ' . $e->getMessage());
             }
         }
 
@@ -112,32 +111,32 @@ class AdminController extends Controller
     // Helper function for validation of input fields
     private function validateProductRequest(Request $request): array
     {
-      return Validator::make($request->all(), [
-          'name' => 'required|min:3',
-          'description' => 'nullable|string',
-          'price' => 'required|numeric',
-          'image' => 'nullable|image|mimes:jpeg,jpg,png,gif,svg|max:2048'
-      ])->validate();
+        return Validator::make($request->all(), [
+            'name' => 'required|min:3',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,gif,svg|max:2048'
+        ])->validate();
     }
 
     // Helper function for saving the product image
     private function handleProductImage(Request $request): string
     {
-      if ($request->hasFile('image') && $request->file('image')->isValid())
-      {
-        $file = $request->file('image'); // Get the image
+        if ($request->hasFile('image') && $request->file('image')->isValid())
+        {
+            $file = $request->file('image'); // Get the image
 
-        // Generate unique file name to avoid conflicts
-        $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            // Generate unique file name to avoid conflicts
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
 
-        // Move file to the storage directory
-        $file->move(public_path('uploads'), $filename);
+            // Move file to the uploads directory
+            $file->move(public_path('uploads'), $filename);
 
-        return 'uploads/' . $filename;
-      }
-      elseif(!isset($product->image))
-      {
-        return 'product-placeholder.jpg';
-      }
+            return 'uploads/' . $filename;
+        }
+        elseif(!isset($product->image))
+        {
+            return 'product-placeholder.jpg';
+        }
     }
 }
